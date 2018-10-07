@@ -28,10 +28,12 @@ class User:
 
     def get_info(self):
         params = self.get_params()
-        params['user_id'] = self.user_id
+        params['user_ids'] = self.user_id
         self.get_requests()
         response = requests.get('https://api.vk.com/method/users.get', params).json()
         print(response['response'][0]['first_name'], response['response'][0]['last_name'])
+        if response['response'][0]['id'] != self.user_id:
+            self.user_id = int(response['response'][0]['id'])
 
     def friends_user(self):
         params = self.get_params()
@@ -53,7 +55,6 @@ class User:
         response = requests.get('https://api.vk.com/method/groups.get', params).json()
         if 'response' in response:
             lst_groups = response['response']['items']
-        #    print(lst_groups)
         return lst_groups
 
     def groups_none_friends(self, list_groups):
@@ -88,8 +89,8 @@ class User:
 
 user1 = User(constants.USER_ID)
 user1.get_info()
-friend_list = user1.friends_user()
-print('Колличество друзей: ', len(friend_list))
+#friend_list = user1.friends_user()
+#print('Колличество друзей: ', len(friend_list))
 groups_list = user1.groups_user()
 groups = user1.groups_none_friends(groups_list)
 if len(groups) > 0:
