@@ -2,6 +2,7 @@ import requests
 import json
 import constants
 import time
+import sys
 
 
 class User:
@@ -23,9 +24,10 @@ class User:
         params = self.get_params()
         params['user_ids'] = self.user_id
         response = requests.get('https://api.vk.com/method/users.get', params).json()
-        print(response['response'][0]['first_name'], response['response'][0]['last_name'])
         if response['response'][0]['id'] != self.user_id:
             self.user_id = int(response['response'][0]['id'])
+        user = response['response'][0]['first_name'] + ' ' + response['response'][0]['last_name']
+        return user
 
     def friends_user(self):  #Формирование списка друзей
         params = self.get_params()
@@ -62,7 +64,10 @@ class User:
                 group_inf = dict()
                 group_inf['id'] = response['response'][0]['id']
                 group_inf['name'] = response['response'][0]['name']
-                group_inf['members_count'] = response['response'][0]['members_count']
+                try:
+                    group_inf['members_count'] = response['response'][0]['members_count']
+                except:
+                    group_inf['members_count'] = response['response'][0]['deactivated']
                 group_info.append(group_inf)
         return group_info
 
@@ -75,25 +80,36 @@ def get_requests(max_quantity = 1, current_numb = 1):  #Отображение �
     current_numb += 1
 
 #friends_dict = dict()
+
+#колличество друзей = 0 - ошибка
+
+#Поиск ID в параметрах запуска
+USER_ID = constants.USER_ID
+if len(sys.argv) > 1:
+    USER_ID = sys.argv[1]
 numb_request = 1
-user1 = User(constants.USER_ID)
+user1 = User(USER_ID)
 get_requests()
-user1.get_info()
-get_requests()
-groups = set(user1.groups_user())
-print('Колличество групп: ', len(groups))
-get_requests()
-friend_list = user1.friends_user()
-print('Колличество друзей: ', len(friend_list))
-numb_request = 1
-for friend in friend_list:
-    get_requests(len(friend_list), numb_request)
-    groups_friend = list(friend.groups_user())
-    if len(groups_friend) != 0:
-        #friends_dict[friend] = groups_friend
-        groups -= set(groups_friend)
-    numb_request += 1
-if len(groups) > 0:
-    data = user1.get_group_info(groups)
-with open('groups.json', 'w', encoding = 'utf8') as f:
-    json.dump(data, f, ensure_ascii = False, indent = 4)
+user_name = user1.get_info()
+if user_name != 'DELETED ':
+    print(user_name)
+    get_requests()
+    groups = set(user1.groups_user())
+    print('Колличество групп: ', len(groups))
+    get_requests()
+    friend_list = user1.friends_user()
+    print('Колличество друзей: ', len(friend_list))
+    numb_request = 1
+    for friend in friend_list:
+        get_requests(len(friend_list), numb_request)
+        groups_friend = list(friend.groups_user())
+        if len(groups_friend) != 0:
+            #friends_dict[friend] = groups_friend
+            groups -= set(groups_friend)
+        numb_request += 1
+    if len(groups) > 0:
+        data = user1.get_group_info(groups)
+    with open('groups.json', 'w', encoding = 'utf8') as f:
+        json.dump(data, f, ensure_ascii = False, indent = 4)
+else:
+    print(f'Пользователь с ID: {USER_ID} недоступен!')
