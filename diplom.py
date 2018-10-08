@@ -80,9 +80,6 @@ def get_requests(max_quantity = 1, current_numb = 1):  #Отображение �
     current_numb += 1
 
 #friends_dict = dict()
-
-#колличество друзей = 0 - ошибка
-
 #Поиск ID в параметрах запуска
 USER_ID = constants.USER_ID
 if len(sys.argv) > 1:
