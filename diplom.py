@@ -1,8 +1,12 @@
 import requests
 import json
-import constants
 import time
 import sys
+
+def load_params(parametr):  #чтение загрузочных параметров
+    with open('loads.json', encoding='utf-8') as f:
+        load_data = json.load(f)
+    return load_data[parametr]
 
 
 class User:
@@ -11,7 +15,7 @@ class User:
         Экземпляр класса создается на основе идентификатора пользователя VK"""
 
     def __init__(self, user_id):
-        self.token = constants.TOKEN
+        self.token = load_params('TOKEN')
         self.user_id = user_id
 
     def get_params(self):
@@ -20,65 +24,78 @@ class User:
             'v': '5.85'
             }
 
+    def get_requests(self, request, parametrs):  #выполнение запросов на сервер VK, получение ответов и обработка ошибок
+        response = requests.get(f'https://api.vk.com/method/{request}', parametrs)
+        print('.')
+        if 'error' in response.text:
+            if response.json()['error']['error_msg'] == 'Too many requests per second':
+                time.sleep(0.8)
+                print('_')
+                response = requests.get(f'https://api.vk.com/method/{request}', parametrs)
+            else:
+                return response.json()['error']['error_msg']
+
+        if 'deactivated' not in response.text:
+            return response.json()['response']
+        else:
+            if request == 'users.get':
+                print(f'Статус пользователя: {response.json()["response"][0]["deactivated"]}!')
+                exit()
+            else:
+                return response.json()['response']
+
     def get_info(self):  #Получение информации о пользователе
         params = self.get_params()
         params['user_ids'] = self.user_id
-        response = requests.get('https://api.vk.com/method/users.get', params).json()
-        if response['response'][0]['id'] != self.user_id:
-            self.user_id = int(response['response'][0]['id'])
-        user = response['response'][0]['first_name'] + ' ' + response['response'][0]['last_name']
-        return user
+        response = self.get_requests('users.get', params)
+        if response[0]['id'] != self.user_id:
+            self.user_id = int(response[0]['id'])
+        user_name = response[0]['first_name'] + ' ' + response[0]['last_name']
+        return user_name
 
     def friends_user(self):  #Формирование списка друзей
         params = self.get_params()
         params['user_id'] = self.user_id
         friends = list()
-        response = requests.get('https://api.vk.com/method/friends.get', params).json()
-        if 'response' in response:
-            lst_friends = response['response']['items']
-            if len(lst_friends) > 0:
-                for friend in lst_friends:
-                    friends.append(User(friend))
+        response = self.get_requests('friends.get', params)
+        lst_friends = response['items']
+        for friend in lst_friends:
+            friends.append(User(friend))
         return friends
 
     def groups_user(self):  #Формирование списка групп пользователя
         params = self.get_params()
         params['user_id'] = self.user_id
         try:
-            response = requests.get('https://api.vk.com/method/groups.get', params).json()
-            #    if 'response' in response:
-            lst_groups = response['response']['items']
+            response = self.get_requests('groups.get', params)
+            lst_groups = response['items']
             return lst_groups
-        except:
-            print(f'Пользователь с ID{self.user_id} недоступен...')
+        except (KeyError, TypeError):
+            print(f'Пользователь ID{self.user_id}: {response}')
             return list()
 
     def get_group_info(self, groups_lst):  #Формирование словаря с описанием групп в токорых не состоит никто из друзей
-        group_info = list()
+        groups_info = list()
         params = self.get_params()
         params['fields'] = 'members_count'
+        str_group = ''
         for group_id in groups_lst:
-            params['group_ids'] = group_id
-            response = requests.get('https://api.vk.com/method/groups.getById', params).json()
-            if 'response' in response:
-                group_inf = dict()
-                group_inf['id'] = response['response'][0]['id']
-                group_inf['name'] = response['response'][0]['name']
-                try:
-                    group_inf['members_count'] = response['response'][0]['members_count']
-                except:
-                    group_inf['members_count'] = response['response'][0]['deactivated']
-                group_info.append(group_inf)
-        return group_info
+            str_group += str(group_id) + ','
+        params['group_ids'] = str_group
+        response = self.get_requests('groups.getById', params)
+        for i in response:
+            group_info = dict()
+            group_info['id'] = i['id']
+            group_info['name'] = i['name']
+            try:
+                group_info['members_count'] = i['members_count']
+            except KeyError:
+                group_info['members_count'] = 'None'
+            groups_info.append(group_info)
+        return groups_info
 
 
-def get_requests(max_quantity = 1, current_numb = 1):  #Отображение выполняемого запроса и общее их колличество
-    print(f'Выполняется запрос №{current_numb} из {max_quantity}.')
-    if current_numb >= max_quantity:
-        current_numb = 0
-    time.sleep(0.34)
-    current_numb += 1
-
+<<<<<<< Updated upstream
 #friends_dict = dict()
 #Поиск ID в параметрах запуска
 USER_ID = constants.USER_ID
@@ -89,24 +106,35 @@ user1 = User(USER_ID)
 get_requests()
 user_name = user1.get_info()
 if user_name != 'DELETED ':
+=======
+def main_vk(user):  #функция поиска групп и друзей с выводом результата в файл 'groups.json'
+    user_name = user.get_info()
+>>>>>>> Stashed changes
     print(user_name)
-    get_requests()
-    groups = set(user1.groups_user())
-    print('Колличество групп: ', len(groups))
-    get_requests()
-    friend_list = user1.friends_user()
-    print('Колличество друзей: ', len(friend_list))
-    numb_request = 1
+    groups = set(user.groups_user())
+    print('Количество групп: ', len(groups))
+    friend_list = user.friends_user()
+    print('Количество друзей: ', len(friend_list))
     for friend in friend_list:
-        get_requests(len(friend_list), numb_request)
         groups_friend = list(friend.groups_user())
         if len(groups_friend) != 0:
-            #friends_dict[friend] = groups_friend
             groups -= set(groups_friend)
-        numb_request += 1
     if len(groups) > 0:
+<<<<<<< Updated upstream
         data = user1.get_group_info(groups)
     with open('groups.json', 'w', encoding = 'utf8') as f:
         json.dump(data, f, ensure_ascii = False, indent = 4)
 else:
     print(f'Пользователь с ID: {USER_ID} недоступен!')
+=======
+        data = user.get_group_info(groups)
+        with open('groups.json', 'w', encoding='utf8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+
+#Поиск ID в параметрах запуска
+USER_ID = load_params('ID')
+if len(sys.argv) > 1:
+    USER_ID = sys.argv[1]
+user = User(USER_ID)
+main_vk(user)
+>>>>>>> Stashed changes
