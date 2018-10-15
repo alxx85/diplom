@@ -95,21 +95,8 @@ class User:
         return groups_info
 
 
-<<<<<<< Updated upstream
-#friends_dict = dict()
-#Поиск ID в параметрах запуска
-USER_ID = constants.USER_ID
-if len(sys.argv) > 1:
-    USER_ID = sys.argv[1]
-numb_request = 1
-user1 = User(USER_ID)
-get_requests()
-user_name = user1.get_info()
-if user_name != 'DELETED ':
-=======
 def main_vk(user):  #функция поиска групп и друзей с выводом результата в файл 'groups.json'
     user_name = user.get_info()
->>>>>>> Stashed changes
     print(user_name)
     groups = set(user.groups_user())
     print('Количество групп: ', len(groups))
@@ -120,13 +107,6 @@ def main_vk(user):  #функция поиска групп и друзей с �
         if len(groups_friend) != 0:
             groups -= set(groups_friend)
     if len(groups) > 0:
-<<<<<<< Updated upstream
-        data = user1.get_group_info(groups)
-    with open('groups.json', 'w', encoding = 'utf8') as f:
-        json.dump(data, f, ensure_ascii = False, indent = 4)
-else:
-    print(f'Пользователь с ID: {USER_ID} недоступен!')
-=======
         data = user.get_group_info(groups)
         with open('groups.json', 'w', encoding='utf8') as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
@@ -137,4 +117,3 @@ if len(sys.argv) > 1:
     USER_ID = sys.argv[1]
 user = User(USER_ID)
 main_vk(user)
->>>>>>> Stashed changes
