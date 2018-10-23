@@ -24,45 +24,56 @@ class User:
             'v': '5.85'
             }
 
-    def get_requests(self, method, parametrs):  #выполнение запросов на сервер VK, получение ответов и обработка ошибок
+    def get_err(self, err):  #обработка ошибок
+        access_denied = 15
+        user_del = 18
+        too_many_requests = 6
+        err_code = err['error_code']
+        err_msg = {
+            'msg': err['error_msg']
+            }
+        if err_code == too_many_requests:
+            time.sleep(0.8)
+            print('_')
+        if err_code == user_del or err_code == access_denied:
+            return err_msg
+
+    def get_requests(self, method, parametrs):  #выполнение запросов на сервер VK, получение ответов
         params = self.get_params()
         params.update(parametrs)
-        activ = 0
         while True:
             response = requests.get(f'https://api.vk.com/method/{method}', params).json()
             print('.')
             if 'error' in response:
-                if response['error']['error_code'] == 6:
-                    time.sleep(0.8)
-                    print('_')
-                if response['error']['error_code'] == 18 or response['error']['error_code'] == 15:
-                    return response['error']['error_msg']
+                err_message = self.get_err(response['error'])
+                if err_message != None:
+                    return err_message
             else:
-                if method == 'groups.getById':
-                    return response['response']
-                else:
-                    try:
-                        return response['response'][0]
-                    except KeyError:
-                        return response['response']
-                break
+                res = response['response']
+                if isinstance(res, list) and method != 'groups.getById':
+                    return res[0]
+                return res
+#                break
 
     def get_id(self):  #Получение ID пользователя по короткому имени (screen_name)
-        params = dict()
-        params['user_ids'] = self.user_id
+        params = {
+            'user_ids': self.user_id
+        }
         response = self.get_requests('users.get', params)
         self.user_id = int(response['id'])
 
     def get_info(self):  #Получение информации о пользователе
-        params = dict()
-        params['user_ids'] = self.user_id
+        params = {
+            'user_ids': self.user_id
+        }
         response = self.get_requests('users.get', params)
         user_name = response['first_name'] + ' ' + response['last_name']
         return user_name
 
     def friends_user(self):  #Формирование списка друзей
-        params = dict()
-        params['user_id'] = self.user_id
+        params = {
+            'user_id': self.user_id
+        }
         friends = list()
         response = self.get_requests('friends.get', params)
         try:
@@ -70,31 +81,34 @@ class User:
             for friend in lst_friends:
                 friends.append(User(friend))
             return friends
-        except TypeError:
+        except KeyError:
             return friends
 
     def groups_user(self):  #Формирование списка групп пользователя
-        params = dict()
-        params['user_id'] = self.user_id
+        params = {
+            'user_id': self.user_id
+        }
         try:
             response = self.get_requests('groups.get', params)
             lst_groups = response['items']
             return lst_groups
-        except TypeError:
-            print(f'Пользователь ID{self.user_id}: {response}')
+        except KeyError:
+            print(f'Пользователь ID{self.user_id}: {response["msg"]}')
             return list()
 
     def get_group_info(self, groups_lst):  #Формирование словаря с описанием групп в токорых не состоит никто из друзей
         groups_info = list()
-        params = dict()
-        params['fields'] = 'members_count'
-#        str_group = ''
+        params = {
+            'fields': 'members_count'
+        }
         str_group = ','.join(map(str, groups_lst))
         params['group_ids'] = str_group
         response = self.get_requests('groups.getById', params)
         for i in response:
-            group_info = dict()
-            group_info = {'id': i['id'], 'name': i['name']}
+            group_info = {
+                'id': i['id'],
+                'name': i['name']
+            }
             try:
                 group_info['members_count'] = i['members_count']
             except KeyError:
