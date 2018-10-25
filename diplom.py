@@ -13,6 +13,9 @@ class User:
     """ Класс для экземпляров описывающих пользователей VK и реализующий поиск групп,
         в которых состоит пользователь.
         Экземпляр класса создается на основе идентификатора пользователя VK"""
+    ACCESS_DENIED = 15
+    USER_DEL = 18
+    TOO_MANY_REQUESTS = 6
 
     def __init__(self, user_id):
         self.token = load_params['TOKEN']
@@ -25,18 +28,17 @@ class User:
             }
 
     def get_err(self, err):  #обработка ошибок
-        access_denied = 15
-        user_del = 18
-        too_many_requests = 6
         err_code = err['error_code']
         err_msg = {
             'msg': err['error_msg']
             }
-        if err_code == too_many_requests:
+        if err_code == User.TOO_MANY_REQUESTS:
             time.sleep(0.8)
             print('_')
-        if err_code == user_del or err_code == access_denied:
+            return None
+        if err_code == User.USER_DEL or err_code == User.ACCESS_DENIED:
             return err_msg
+        return err_msg
 
     def get_requests(self, method, parametrs):  #выполнение запросов на сервер VK, получение ответов
         params = self.get_params()
@@ -53,7 +55,6 @@ class User:
                 if isinstance(res, list) and method != 'groups.getById':
                     return res[0]
                 return res
-#                break
 
     def get_id(self):  #Получение ID пользователя по короткому имени (screen_name)
         params = {
