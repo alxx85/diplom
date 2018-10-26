@@ -14,8 +14,6 @@ class User:
         в которых состоит пользователь.
         Экземпляр класса создается на основе идентификатора пользователя VK"""
     ACCESS_DENIED = 15
-    USER_DEL = 18
-    TOO_MANY_REQUESTS = 6
 
     def __init__(self, user_id):
         self.token = load_params['TOKEN']
@@ -36,8 +34,6 @@ class User:
             time.sleep(0.8)
             print('_')
             return None
-        if err_code == User.USER_DEL or err_code == User.ACCESS_DENIED:
-            return err_msg
         return err_msg
 
     def get_requests(self, method, parametrs):  #выполнение запросов на сервер VK, получение ответов
